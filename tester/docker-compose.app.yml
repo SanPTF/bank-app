@@ -1,0 +1,39 @@
+# bank-app/tester/docker-compose.app.yml
+#
+# The bank application and its traffic simulator, in Docker, talking to a database that is NOT in Docker
+# (the PostgreSQL 16 on this PC, later the migrator's proxy or target) through host.docker.internal.
+# BANK_DSN is set by the numbered scripts; use 04_route_app.ps1 to repoint the app.
+name: bank-tester
+
+services:
+  bankapp:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    image: bank-tester-app:latest
+    environment:
+      BANK_DSN: ${BANK_DSN:?use 03_start_bank_app.ps1, it sets this}
+      BANK_SCHEMA: bank
+      BANK_ENDPOINT: ${BANK_ENDPOINT:-local-pg16}
+      BANK_PORT: "8090"
+      BANK_POOL_MIN: "4"
+      BANK_POOL_MAX: "32"
+    extra_hosts: ["host.docker.internal:host-gateway"]
+    ports: ["8090:8090"]
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request as u; u.urlopen('http://127.0.0.1:8090/healthz', timeout=3)"]
+      interval: 5s
+      retries: 12
+
+  banktraffic:
+    image: bank-tester-app:latest
+    depends_on:
+      bankapp: {condition: service_healthy}
+    environment:
+      BANK_BASE_URL: http://bankapp:8090
+      BANK_OUT: /srv/bank/out
+    command: ["python", "traffic.py", "--rps", "${TRAFFIC_RPS:-100}", "--concurrency", "40", "--mix", "80:20", "--duration", "0", "--ramp", "30"]
+    restart: unless-stopped
+    volumes:
+      - ../runs/traffic:/srv/bank/out
