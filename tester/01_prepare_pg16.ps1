@@ -17,7 +17,7 @@ if (-not $id.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
     throw "Run this script from an Administrator PowerShell (it edits PostgreSQL's config files and restarts the service)."
 }
 
-# -- find the data directory ------------------------------------------------─
+# -- find the data directory ---------------------------------------------------
 $dataDir = $cfg['PG_DATA_DIR']
 if (-not $dataDir) {
     $svc = Get-CimInstance Win32_Service -Filter "Name='$($cfg['PG_SERVICE'])'"

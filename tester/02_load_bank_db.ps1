@@ -36,7 +36,7 @@ if ($exists -ne '1') {
     Invoke-Psql $cfg 'postgres' @('-c',"CREATE DATABASE $db")
 }
 
-# -- guard against wiping an existing load by accident ----------------------─
+# -- guard against wiping an existing load by accident -------------------------
 $has = Get-Scalar $cfg $db "SELECT COALESCE((SELECT reltuples::bigint FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace WHERE n.nspname = 'bank' AND c.relname = 'customers'), -1)"
 if ($has -ne '-1' -and -not $Force) {
     $ans = Read-Host "Schema 'bank' already exists in $db and will be DROPPED and reloaded. Type yes to continue"
