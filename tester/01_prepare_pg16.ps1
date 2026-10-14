@@ -17,7 +17,7 @@ if (-not $id.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
     throw "Run this script from an Administrator PowerShell (it edits PostgreSQL's config files and restarts the service)."
 }
 
-# ── find the data directory ─────────────────────────────────────────────────
+# -- find the data directory ------------------------------------------------─
 $dataDir = $cfg['PG_DATA_DIR']
 if (-not $dataDir) {
     $svc = Get-CimInstance Win32_Service -Filter "Name='$($cfg['PG_SERVICE'])'"
@@ -60,14 +60,14 @@ host    replication    all    $cidr    scram-sha-256
 "@
 "updated $hba   (allowing $cidr)"
 
-# ── firewall ────────────────────────────────────────────────────────────────
+# -- firewall ----------------------------------------------------------------
 $rule = 'PostgreSQL bank-app migration test'
 if (-not (Get-NetFirewallRule -DisplayName $rule -ErrorAction SilentlyContinue)) {
     New-NetFirewallRule -DisplayName $rule -Direction Inbound -Protocol TCP -LocalPort ([int]$cfg['PG_PORT']) -Action Allow -Profile Any | Out-Null
     "firewall rule added: TCP $($cfg['PG_PORT'])"
 } else { "firewall rule already present" }
 
-# ── restart and verify ──────────────────────────────────────────────────────
+# -- restart and verify ------------------------------------------------------
 if ($NoRestart) {
     "Restart the '$($cfg['PG_SERVICE'])' service yourself, then run 02_load_bank_db.ps1."
     return

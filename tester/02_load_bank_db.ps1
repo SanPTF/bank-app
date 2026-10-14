@@ -23,20 +23,20 @@ if ($customers -lt 1) { throw "customers must be at least 1 (set SEED_CUSTOMERS)
 $db = $cfg['PG_DATABASE']
 "target: $($cfg['PG_HOST']):$($cfg['PG_PORT'])/$db   preset=$Preset  customers=$customers  (~$($customers * 10) transfers, ~$([math]::Round($customers * 47 / 1e6, 1))M rows total)"
 
-# ── connectivity and prerequisites ──────────────────────────────────────────
+# -- connectivity and prerequisites ------------------------------------------
 $ver = Get-Scalar $cfg 'postgres' 'SHOW server_version'
 $wal = Get-Scalar $cfg 'postgres' 'SHOW wal_level'
 "PostgreSQL $ver, wal_level=$wal"
 if ($wal -ne 'logical') { Write-Warning "wal_level is '$wal'. The migration needs 'logical' - run 01_prepare_pg16.ps1 first (loading still works)." }
 
-# ── database ────────────────────────────────────────────────────────────────
+# -- database ----------------------------------------------------------------
 $exists = Get-Scalar $cfg 'postgres' "SELECT 1 FROM pg_database WHERE datname = '$db'"
 if ($exists -ne '1') {
     "creating database $db"
     Invoke-Psql $cfg 'postgres' @('-c',"CREATE DATABASE $db")
 }
 
-# ── guard against wiping an existing load by accident ───────────────────────
+# -- guard against wiping an existing load by accident ----------------------─
 $has = Get-Scalar $cfg $db "SELECT COALESCE((SELECT reltuples::bigint FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace WHERE n.nspname = 'bank' AND c.relname = 'customers'), -1)"
 if ($has -ne '-1' -and -not $Force) {
     $ans = Read-Host "Schema 'bank' already exists in $db and will be DROPPED and reloaded. Type yes to continue"
